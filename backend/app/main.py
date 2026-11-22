@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 
 from .auth import crear_token, hashear, usuario_actual, verificar
+from .analisis import router as analisis_router
 from .database import crear_tablas, get_session
 from .models import LoginIn, RegistroIn, TokenOut, Usuario, UsuarioOut
 
@@ -16,6 +17,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Analizador de CVs API", lifespan=lifespan)
+app.include_router(analisis_router)
 
 # Permite que el front-end se conecte desde otro puerto
 app.add_middleware(
