@@ -25,6 +25,15 @@ class Analisis(SQLModel, table=True):
     created_at: datetime = Field(default_factory=ahora)
 
 
+class CV(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    usuario_id: int = Field(foreign_key="usuario.id", index=True)
+    nombre_archivo: str
+    tamano_bytes: int
+    analisis_id: Optional[int] = Field(default=None, foreign_key="analisis.id")
+    created_at: datetime = Field(default_factory=ahora)
+
+
 # ---------- Formatos de la API ----------
 class RegistroIn(SQLModel):
     email: str
