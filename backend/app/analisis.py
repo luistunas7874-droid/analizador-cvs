@@ -9,6 +9,7 @@ from .ia import analizar
 from .models import Analisis, Usuario
 
 router = APIRouter(prefix="/analyses", tags=["analyses"])
+router_cvs = APIRouter(prefix="/cvs", tags=["cvs"])
 
 
 def armar(a: Analisis) -> dict:
@@ -64,3 +65,6 @@ def detalle_analisis(
     if not fila or fila.usuario_id != usuario.id:
         raise HTTPException(status_code=404, detail="Analisis no encontrado")
     return armar(fila)
+@router_cvs.get("")
+def listar_cvs():
+    return []
