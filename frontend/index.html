@@ -399,7 +399,7 @@ function informe(a) {
   if (resumenTxt) h += `<p>${esc(resumenTxt)}</p>`;
   if (desg) h += sec("Desglose por área", "Qué tan bien responde tu CV en cada área que evalúa la vacante.", desg);
   if (pres.length || falt.length) h += sec("Palabras clave", "Términos que los filtros automáticos y los reclutadores buscan en tu CV.",
-    `<p class="sub">Ya aparecen en tu CV</p>${chips(pres, "on")}<p class="sub">Faltan en tu CV</p>${chips(falt, "off")}`);
+    (pres.length ? `<p class="sub">Ya aparecen en tu CV</p>${chips(pres, "on")}` : "") + (falt.length ? `<p class="sub">Faltan en tu CV</p>${chips(falt, "off")}` : ""));
   if (fort.length || deb.length) h += `<section class="sec"><div class="two"><div><h3>Fortalezas</h3><p class="help">Lo que tu CV ya demuestra frente a la vacante.</p>${ul(fort, "good")}</div><div><h3>Debilidades</h3><p class="help">Requisitos que tu CV no muestra con claridad.</p>${ul(deb, "fix")}</div></div></section>`;
   if (eds.length) h += sec("Qué editar en tu CV", "Cambios concretos, sección por sección, ordenados de mayor a menor prioridad.", ediciones(eds));
   if (sug.length) h += sec(eds.length ? "Otras sugerencias" : "Sugerencias de mejora", eds.length ? "" : "Ideas para fortalecer tu CV frente a esta vacante.", ul(sug, "fix"));
