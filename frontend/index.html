@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CVisión · Analizador de CVs</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#f5f5f5;--panel:#fff;--ink:#1c1c1c;--muted:#666;--line:#dedede;--accent:#3d5a80;--accent-d:#2b4260;--tint:#eaeff5;--mid:#8da2bd;--ok:#3d5a80;--warn:#8da2bd;--bad:#6b6b6b}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 1rem/1.6 "Hanken Grotesk",system-ui,sans-serif}
+h1,h2,h3{margin:0 0 .6rem;line-height:1.15;font-weight:700;letter-spacing:-.02em}
+h1{font-size:clamp(1.8rem,5vw,2.6rem)}h2{font-size:1.35rem}h3{font-size:1.05rem;margin-top:1.5rem}
+p{margin:0 0 1rem}
+a{color:var(--accent)}
+.muted{color:var(--muted)}
+header{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1rem 1.5rem;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:baseline;gap:.6rem;font-weight:700;letter-spacing:-.03em;color:var(--ink);text-decoration:none;font-size:1.3rem}
+.brand .tag{font-weight:400;font-size:.9rem;letter-spacing:0;color:var(--muted)}
+nav{display:flex;gap:1.25rem;align-items:center}
+nav a{color:var(--muted);text-decoration:none;font-weight:500}
+nav a:hover,nav a.on{color:var(--ink)}
+main{max-width:720px;margin:0 auto;padding:2.5rem 1.25rem 5rem}
+main.wide{max-width:860px}
+#wake{background:var(--tint);color:var(--accent-d);text-align:center;padding:.5rem 1rem;font-size:.92rem;border-bottom:1px solid var(--line)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:2.25rem;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+label{display:block;font-weight:500;margin:1.1rem 0 .35rem;font-size:.95rem}
+input[type=text],input[type=email],input[type=password],input[type=search],textarea{width:100%;padding:.7rem .8rem;border:1px solid var(--line);border-radius:8px;font:inherit;color:inherit;background:#fff}
+textarea{min-height:190px;resize:vertical}
+:focus-visible{outline:3px solid #8fa3d6;outline-offset:2px}
+.btn{display:inline-block;margin-top:1.25rem;padding:.7rem 1.3rem;border:1px solid var(--accent);border-radius:8px;background:var(--accent);color:#fff;font:500 1rem inherit;cursor:pointer;text-decoration:none}
+.btn:hover{background:var(--accent-d)}
+.btn:disabled{opacity:.55;cursor:wait}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{background:#ececec}
+.btn.danger{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.danger:hover{background:#efefef}
+.btn.sm{margin:0;padding:.35rem .75rem;font-size:.88rem}
+.row{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center}
+.msg{margin-top:1rem;padding:.7rem .9rem;border-radius:8px;background:#efefef;border-left:3px solid var(--ink);color:var(--ink);font-size:.95rem}
+.msg.info{background:var(--tint);border-left-color:var(--accent);color:var(--accent-d)}
+.msg.ok{background:var(--tint);border-left-color:var(--accent);color:var(--ink)}
+/* landing */
+.hero{padding:2rem 0 2.5rem}
+.hero p.lead{font-size:1.2rem;color:var(--muted);max-width:34em}
+.steps{list-style:none;margin:3rem 0 0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.steps li{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.steps svg{display:block;width:30px;height:30px;margin-bottom:.9rem;color:var(--accent)}
+.steps strong{display:block;margin-bottom:.3rem}
+.steps span{color:var(--muted);font-size:.95rem}
+/* dropzone */
+.drop{border:1.5px dashed #c5c8d2;border-radius:10px;padding:2rem 1rem;text-align:center;cursor:pointer;transition:background .15s,border-color .15s}
+.drop:hover,.drop.over{background:var(--tint);border-color:var(--accent)}
+.drop strong{display:block}
+.file{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.file-bar{display:flex;justify-content:space-between;align-items:center;gap:.75rem;padding:.6rem .9rem;border-bottom:1px solid var(--line);font-size:.92rem}
+.file-bar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file iframe{display:block;width:100%;height:340px;border:0;background:#f3f3f1}
+.count{font-size:.85rem;color:var(--muted);text-align:right;margin-top:.25rem}
+/* resultados */
+.summary{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:1rem;padding:1rem 1.25rem;margin:0 0 1.75rem;border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:10px;background:#f8fafc}
+.summary small{display:block;color:var(--muted);font-size:.82rem}
+.summary b{font-weight:500;overflow-wrap:anywhere}
+.score{display:flex;align-items:center;gap:1.5rem;margin-bottom:1rem}
+.ring{--p:0;--c:var(--accent);width:112px;height:112px;border-radius:50%;flex:none;display:grid;place-items:center;background:conic-gradient(var(--c) calc(var(--p)*1%),var(--line) 0)}
+.ring span{width:88px;height:88px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:1.7rem;font-weight:700;letter-spacing:-.03em}
+ul.list{margin:0;padding:0;list-style:none}
+ul.list li{position:relative;padding:.4rem 0 .4rem 1.3rem;border-bottom:1px solid var(--line)}
+ul.list li:last-child{border:0}
+ul.list li::before{content:"";position:absolute;left:0;top:.95rem;width:8px;height:8px;border-radius:50%;background:var(--m,var(--muted))}
+ul.list.good{--m:var(--accent)}ul.list.fix{--m:var(--ink)}
+/* historial */
+.hist{list-style:none;margin:1rem 0 0;padding:0}
+.hist li{display:flex;align-items:center;gap:1rem;border-bottom:1px solid var(--line);padding:.9rem 0}
+.hist li:last-child{border:0}
+.hist a.item{flex:1;min-width:0;color:inherit;text-decoration:none}
+.hist a.item:hover .t{color:var(--accent)}
+.hist .t{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pct{font-weight:700;min-width:3.2rem;text-align:right}
+.bar{width:64px;height:6px;border-radius:3px;background:var(--line);overflow:hidden;flex:none}
+.bar i{display:block;height:100%}
+@media(max-width:520px){.brand .tag{display:none}.bar{display:none}.score{flex-direction:column;align-items:flex-start}nav{gap:.8rem;font-size:.92rem}}
+/* didactico */
+.help{color:var(--muted);font-size:.92rem;margin:-.15rem 0 .9rem}
+.how{border:1px solid var(--line);border-radius:10px;padding:.75rem 1rem;margin:0 0 1.5rem;background:#fafafa}
+.how summary{cursor:pointer;font-weight:500}
+.how p{margin:.6rem 0 0;font-size:.95rem;color:var(--muted)}
+.how p b{color:var(--ink);font-weight:500}
+.stepper{display:flex;gap:.5rem;list-style:none;margin:0 0 1.5rem;padding:0;counter-reset:s}
+.stepper li{flex:1;counter-increment:s;padding:.55rem .75rem;border-radius:8px;border:1px solid var(--line);background:var(--panel);font-size:.9rem;color:var(--muted)}
+.stepper li::before{content:counter(s) ". "}
+.stepper li.done{background:var(--tint);border-color:var(--mid);color:var(--accent-d);font-weight:500}
+.incl{display:grid;grid-template-columns:1fr 1fr;gap:0 2rem;list-style:none;padding:0;margin:1rem 0 0}
+.incl li{border-top:1px solid var(--line);padding:.8rem 0}
+.incl strong{display:block}
+.incl span{color:var(--muted);font-size:.95rem}
+.demo{background:var(--tint);border-left:3px solid var(--accent);color:var(--accent-d);padding:.7rem .9rem;border-radius:8px;margin:0 0 1.25rem;font-size:.95rem}
+/* informe */
+.sec{border-top:1px solid var(--line);padding-top:1.4rem;margin-top:1.6rem}
+.sec h3{margin-top:0}
+.bars{display:grid;gap:.7rem}
+.brow{display:grid;grid-template-columns:140px 1fr 3rem;gap:.75rem;align-items:center;font-size:.95rem}
+.brow .track{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.brow .track i{display:block;height:100%;background:var(--accent)}
+.brow b{text-align:right;font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:.45rem;margin:0 0 1rem}
+.chip{padding:.25rem .75rem;border-radius:999px;font-size:.88rem;border:1px solid var(--line)}
+.chip.on{background:var(--tint);border-color:var(--mid);color:var(--accent-d)}
+.chip.off{background:#fff;border-style:dashed}
+.sub{font-size:.9rem;color:var(--muted);margin:.2rem 0 .5rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:2rem}
+.edit{border:1px solid var(--line);border-radius:10px;padding:1rem 1.15rem;margin:0 0 .85rem}
+.edit-h{display:flex;justify-content:space-between;align-items:center;gap:.75rem;margin-bottom:.4rem}
+.edit p{margin:.45rem 0}
+.edit small,.ba small{display:block;color:var(--muted);font-size:.8rem}
+.badge{font-size:.8rem;padding:.12rem .65rem;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.badge.alta{background:var(--accent);border-color:var(--accent);color:#fff}
+.badge.media{border-color:var(--accent);color:var(--accent-d)}
+.badge.baja{color:var(--muted)}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.6rem}
+.ba>div{padding:.6rem .75rem;border-radius:8px;background:#f1f1f1;font-size:.93rem}
+.ba>div+div{background:var(--tint)}
+ol.plan{margin:0;padding-left:1.4rem}
+ol.plan li{padding:.35rem 0 .35rem .3rem}
+ol.plan li::marker{color:var(--accent);font-weight:700}
+@media(max-width:700px){.steps,.summary,.two,.ba,.incl{grid-template-columns:1fr}.card{padding:1.5rem}.brow{grid-template-columns:100px 1fr 2.6rem}.stepper{flex-direction:column}}
+@media print{header,#wake,.noprint{display:none!important}body{background:#fff}main{max-width:none;padding:0}.card{box-shadow:none;border:0;padding:0}.edit,.sec{break-inside:avoid}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="wake" hidden>El servidor gratuito estaba dormido y está despertando. Puede tardar hasta un minuto.</div>
+<header>
+  <a class="brand" href="#inicio">CVisión<span class="tag">Analizador de CVs</span></a>
+  <nav id="nav"></nav>
+</header>
+<main id="app"></main>
+
+<script>
+// ============ CONFIGURACIÓN (contrastar con https://analizador-cvs.onrender.com/docs) ============
+const API = "https://analizador-cvs.onrender.com";
+// Rutas candidatas: la app prueba en orden y recuerda la primera que no dé 404.
+// Cuando confirmes la ruta real en /docs, deja solo esa en cada lista.
+const REG_PATHS = ["/registro", "/auth/registro", "/auth/register", "/register", "/auth/signup", "/signup", "/usuarios/registro", "/usuarios", "/users"];
+const LOGIN_PATHS = ["/login", "/auth/login", "/usuarios/login", "/auth/token", "/token"];
+const REG_FIELDS = ["email", "password"];             // esquema RegistroIn
+const LOGIN_FIELDS = ["email", "password"];           // esquema LoginIn
+const MAX_MB = 10;
+// ======================================================================================================
+
+const $app = document.getElementById("app"), $nav = document.getElementById("nav"), $wake = document.getElementById("wake");
+const TOKEN_KEY = "token";
+const getToken = () => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } };
+const setToken = t => { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch {} };
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $ = (s, r = document) => r.querySelector(s);
+
+async function api(path, { method = "GET", json, form } = {}) {
+  const headers = {}, t = getToken();
+  if (t) headers.Authorization = "Bearer " + t;
+  let body;
+  if (json) { headers["Content-Type"] = "application/json"; body = JSON.stringify(json); }
+  if (form) body = form;
+  const timer = setTimeout(() => ($wake.hidden = false), 3000);
+  try {
+    let res;
+    try { res = await fetch(API + path, { method, headers, body }); }
+    catch { throw new Error("No se pudo conectar con el servidor. Revisa tu internet o avisa si aparece un error de CORS."); }
+    if (res.status === 401 && t) { setToken(null); location.hash = "#login"; throw new Error("Tu sesión expiró. Inicia sesión de nuevo."); }
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      let d = data && data.detail;
+      if (Array.isArray(d)) d = d.map(e => (e.loc ? e.loc.slice(1).join(".") + ": " : "") + e.msg).join(" · ");
+      const err = new Error(d || "Error " + res.status); err.status = res.status; throw err;
+    }
+    return data;
+  } finally { clearTimeout(timer); $wake.hidden = true; }
+}
+
+const RUTAS = { reg: null, login: null, analyses: "/analyses", puedeBorrar: true, listo: null };
+function descubrir() {
+  if (RUTAS.listo) return RUTAS.listo;
+  RUTAS.listo = (async () => {
+    try {
+      const doc = await api("/openapi.json");
+      const paths = doc.paths || {};
+      const todas = Object.keys(paths);
+      const posts = todas.filter(p => paths[p].post);
+      RUTAS.reg = posts.find(p => /regist|signup|sign-up/i.test(p)) || null;
+      RUTAS.login = posts.find(p => /login|signin|sign-in|token/i.test(p)) || null;
+      const an = posts.find(p => /analyses\/?$/i.test(p));
+      if (an) RUTAS.analyses = an.replace(/\/$/, "");
+      const det = todas.find(p => /analyses\/\{[^}]+\}\/?$/i.test(p));
+      if (det) RUTAS.puedeBorrar = !!paths[det].delete;
+    } catch { /* si falla, se usan las rutas por defecto y los errores salen en cada pantalla */ }
+  })();
+  return RUTAS.listo;
+}
+
+async function apiPrimero(paths, opts) {
+  for (const p of paths) {
+    try { return await api(p, opts); }
+    catch (e) { if (e.status !== 404) throw e; }
+  }
+  throw new Error("No se encontró la ruta en el servidor (404). Revisa las rutas en /docs.");
+}
+
+function note(el, text, kind = "") { el.className = "msg " + kind; el.textContent = text; el.hidden = !text; }
+function busy(btn, on, label) { if (!btn.dataset.t) btn.dataset.t = btn.textContent; btn.disabled = on; btn.textContent = on ? label || "Cargando…" : btn.dataset.t; }
+
+function renderNav(ruta) {
+  $nav.innerHTML = getToken()
+    ? `<a href="#analizar" class="${ruta === "analizar" ? "on" : ""}">Nuevo análisis</a><a href="#historial" class="${ruta === "historial" ? "on" : ""}">Historial</a><a href="#" id="out">Salir</a>`
+    : `<a href="#login" class="${ruta === "login" ? "on" : ""}">Entrar</a><a href="#registro" class="${ruta === "registro" ? "on" : ""}">Crear cuenta</a>`;
+  const out = $("#out"); if (out) out.onclick = e => { e.preventDefault(); setToken(null); location.hash = "#inicio"; };
+}
+
+/* ---------- Landing ---------- */
+function inicioView() {
+  const ico = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const documento = ico('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/>');
+  const vacante = ico('<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/>');
+  const grafica = ico('<path d="M4 20V4"/><path d="M4 20h16"/><path d="M8 16v-4M12 16V8M16 16v-6"/>');
+  $app.innerHTML = `<section class="hero">
+    <h1>Evalúa la compatibilidad de tu currículum antes de postularte.</h1>
+    <p class="lead">Analiza tu perfil profesional frente a los requisitos del puesto. Obtén un diagnóstico de afinidad y recomendaciones estratégicas para destacar en el proceso de selección.</p>
+    <div class="row"><a class="btn" href="#registro">Crear cuenta gratuita</a><a class="btn ghost" href="#login">Ya tengo cuenta</a><a href="#ejemplo" style="margin:1.25rem 0 0 .5rem">Ver un informe de ejemplo</a></div>
+    <ol class="steps">
+      <li>${documento}<strong>Carga tu currículum</strong><span>Sube tu documento actualizado en formato PDF.</span></li>
+      <li>${vacante}<strong>Ingresa la vacante</strong><span>Copia y pega la descripción y requisitos del puesto.</span></li>
+      <li>${grafica}<strong>Obtén tu diagnóstico</strong><span>Consulta tu índice de compatibilidad, fortalezas clave y áreas de oportunidad. Todo se guarda en tu historial.</span></li>
+    </ol>
+    <h2 style="margin-top:3rem">Qué incluye tu informe</h2>
+    <ul class="incl">
+      <li><strong>Porcentaje de compatibilidad</strong><span>Qué tanto de lo que pide la vacante aparece en tu CV, con desglose por área.</span></li>
+      <li><strong>Palabras clave</strong><span>Los términos de la vacante que ya usas y los que te faltan.</span></li>
+      <li><strong>Fortalezas y debilidades</strong><span>Lo que tu perfil demuestra bien y lo que queda poco claro.</span></li>
+      <li><strong>Qué editar, sección por sección</strong><span>Cambios concretos con ejemplos de antes y después, ordenados por prioridad.</span></li>
+    </ul></section>`;
+}
+
+/* ---------- Login y registro ---------- */
+const LABELS = { nombre: "Nombre", email: "Correo electrónico", password: "Contraseña" };
+function authView(modo) {
+  const reg = modo === "registro", campos = reg ? REG_FIELDS : LOGIN_FIELDS;
+  $app.innerHTML = `<div class="card" style="max-width:440px;margin:0 auto"><h2>${reg ? "Crea tu cuenta" : "Inicia sesión"}</h2>
+    <form id="f" novalidate>${campos.map(c => `<label for="${c}">${LABELS[c] || c}</label>
+      <input id="${c}" name="${c}" required ${c === "password" ? `type="password" minlength="6" autocomplete="${reg ? "new" : "current"}-password"` : c === "email" ? 'type="email" autocomplete="email"' : 'type="text"'}>`).join("")}
+      <button class="btn" type="submit" style="width:100%">${reg ? "Crear cuenta" : "Entrar"}</button></form>
+    <div id="m" hidden></div>
+    <p class="muted" style="margin:1.25rem 0 0">${reg ? '¿Ya tienes cuenta? <a href="#login">Inicia sesión</a>' : '¿Primera vez? <a href="#registro">Crea tu cuenta</a>'}</p></div>`;
+  const f = $("#f"), m = $("#m"), btn = $("button", f);
+  f.onsubmit = async e => {
+    e.preventDefault();
+    for (const c of campos) if (!f[c].value.trim()) return note(m, "Completa todos los campos.");
+    if (f.password.value.length < 6) return note(m, "La contraseña debe tener al menos 6 caracteres.");
+    const datos = Object.fromEntries(new FormData(f));
+    busy(btn, true, reg ? "Creando cuenta…" : "Entrando…"); note(m, "");
+    try {
+      await descubrir();
+      if (reg) await apiPrimero(RUTAS.reg ? [RUTAS.reg] : REG_PATHS, { method: "POST", json: datos });
+      const r = await apiPrimero(RUTAS.login ? [RUTAS.login] : LOGIN_PATHS, { method: "POST", json: reg ? { email: datos.email, password: datos.password } : datos });
+      const tk = r && (r.access_token || r.token);
+      if (!tk) throw new Error("El servidor no devolvió un token de acceso.");
+      setToken(tk);
+      location.hash = "#analizar";
+    } catch (err) { note(m, err.message); }
+    busy(btn, false);
+  };
+}
+
+/* ---------- Nuevo análisis ---------- */
+function analizarView() {
+  let file = null, url = null;
+  $app.innerHTML = `<h1>Nuevo análisis</h1><p class="muted">Completa los dos pasos y recibirás tu informe en unos segundos.</p>
+    <ol class="stepper noprint" id="stp"><li>Sube tu CV</li><li>Pega la vacante</li><li>Recibe tu informe</li></ol>
+    <div class="card"><form id="f" novalidate>
+      <label>Tu CV (PDF, máx. ${MAX_MB} MB)</label>
+      <p class="help">Usa un PDF con texto seleccionable. Los PDF escaneados como imagen no se pueden leer.</p>
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Elegir archivo PDF"><strong>Arrastra tu PDF aquí</strong><span class="muted">o haz clic para elegirlo</span></div>
+      <input id="cv" type="file" accept="application/pdf" hidden>
+      <div class="file" id="file" hidden><div class="file-bar"><span id="fname"></span><button type="button" class="btn ghost sm" id="rm">Quitar</button></div><iframe id="prev" title="Vista previa del CV"></iframe></div>
+      <label for="vac">Texto de la vacante</label>
+      <p class="help">Copia la oferta completa: funciones, requisitos y herramientas. Mientras más detalle, más preciso el análisis.</p>
+      <textarea id="vac" placeholder="Pega aquí la descripción completa del puesto: requisitos, funciones, herramientas…"></textarea>
+      <div class="count" id="cnt">0 caracteres</div>
+      <button class="btn" type="submit">Analizar CV</button></form><div id="m" hidden></div></div>
+    <p class="muted" style="margin:1.25rem 0 0">¿Quieres ver qué recibirás? <a href="#ejemplo">Mira un informe de ejemplo</a>.</p>`;
+  const f = $("#f"), m = $("#m"), drop = $("#drop"), input = $("#cv"), box = $("#file"), vac = $("#vac"), btn = $("button[type=submit]", f);
+  const stp = [...document.querySelectorAll("#stp li")];
+  const paso = () => { stp[0].classList.toggle("done", !!file); stp[1].classList.toggle("done", vac.value.trim().length >= 30); };
+
+  function setFile(x) {
+    if (url) URL.revokeObjectURL(url);
+    if (!x) { file = url = null; box.hidden = true; drop.hidden = false; input.value = ""; return; }
+    if (x.type !== "application/pdf" && !/\.pdf$/i.test(x.name)) return note(m, "El archivo debe ser un PDF.");
+    if (x.size > MAX_MB * 1048576) return note(m, `El PDF pesa más de ${MAX_MB} MB.`);
+    note(m, ""); file = x; url = URL.createObjectURL(x);
+    $("#fname").textContent = `${x.name} · ${(x.size / 1024).toFixed(0)} KB`;
+    $("#prev").src = url; box.hidden = false; drop.hidden = true;
+  }
+  drop.onclick = () => input.click();
+  drop.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.click(); } };
+  input.onchange = () => { setFile(input.files[0]); paso(); };
+  $("#rm").onclick = () => { setFile(null); paso(); };
+  ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", e => { setFile(e.dataTransfer.files[0]); paso(); });
+  vac.oninput = () => { $("#cnt").textContent = vac.value.length + " caracteres"; paso(); };
+
+  f.onsubmit = async e => {
+    e.preventDefault();
+    if (!file) return note(m, "Sube tu CV en PDF.");
+    if (vac.value.trim().length < 30) return note(m, "Pega el texto completo de la vacante (mínimo 30 caracteres).");
+    busy(btn, true, "Analizando…"); note(m, "Procesando documento y evaluando requisitos del puesto…", "info");
+    try {
+      const fd = new FormData(); fd.append("vacante", vac.value.trim()); fd.append("cv", file);
+      await descubrir();
+      const r = await api(RUTAS.analyses, { method: "POST", form: fd });
+      if (r && r.id != null) { guardarArchivo(r.id, file.name); location.hash = "#resultado/" + r.id; } else resultadoView(null, r);
+    } catch (err) { note(m, err.message); }
+    busy(btn, false);
+  };
+}
+
+/* ---------- Resultado ---------- */
+const OCULTAR = /^(id|user_?id|usuario_?id|owner_?id|cv_?texto|texto_?cv)$/i;
+const esPct = k => /porcentaje|compatib|score|match|puntaje/i.test(k);
+const esFecha = k => /fecha|created|creado/i.test(k);
+const ETIQUETAS = { summary: "Resumen", strengths: "Fortalezas", weaknesses: "Debilidades", missing_keywords: "Palabras clave faltantes", suggestions: "Sugerencias de mejora", match_percentage: "Compatibilidad", matched_keywords: "Palabras clave presentes", recommendations: "Recomendaciones" };
+const titulo = k => { const n = k.toLowerCase().replace(/[\s-]+/g, "_"); if (ETIQUETAS[n]) return ETIQUETAS[n]; const s = k.replace(/_/g, " "); return s[0].toUpperCase() + s.slice(1); };
+const pctColor = p => (p >= 70 ? "var(--ok)" : p >= 40 ? "var(--warn)" : "var(--bad)");
+const pctOf = a => { const k = Object.keys(a).find(k => esPct(k) && typeof a[k] === "number"); return k ? Math.round(a[k]) : null; };
+const fechaTxt = v => { const d = new Date(v); return isNaN(d) ? String(v) : d.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" }); };
+
+const esArchivo = k => /archivo|filename|file_?name|nombre_?(del_)?cv|cv_?(nombre|name)/i.test(k);
+const nivel = p => p >= 70 ? { corto: "Alta", largo: "Compatibilidad alta" }
+  : p >= 40 ? { corto: "Media", largo: "Compatibilidad media — Se recomienda ajustar" }
+  : { corto: "Baja", largo: "Compatibilidad baja — Requiere optimización" };
+function archivosGuardados() { try { return JSON.parse(localStorage.getItem("cvfiles") || "{}"); } catch { return {}; } }
+function guardarArchivo(id, name) { try { const m = archivosGuardados(); m[id] = name; localStorage.setItem("cvfiles", JSON.stringify(m)); } catch {} }
+
+function resumen(a) {
+  const p = pctOf(a);
+  const fk = Object.keys(a).find(esFecha);
+  const ak = Object.keys(a).find(k => esArchivo(k) && typeof a[k] === "string");
+  const nombre = (ak && a[ak]) || archivosGuardados()[a.id] || "No disponible";
+  return `<div class="summary"><div><small>Fecha del análisis</small><b>${fk ? esc(fechaTxt(a[fk])) : "No disponible"}</b></div>
+    <div><small>Documento analizado</small><b>${esc(nombre)}</b></div>
+    <div><small>Nivel de afinidad</small><b>${p !== null ? esc(nivel(p).corto) + " (" + p + "%)" : "No disponible"}</b></div></div>`;
+}
+
+const COMO = `<details class="how noprint"><summary>Cómo leer este informe</summary>
+  <p><b>Compatibilidad.</b> Estima qué tanto de lo que pide la vacante aparece en tu CV. Escala: 70 a 100 es alta, 40 a 69 es media y 0 a 39 es baja.</p>
+  <p><b>Palabras clave.</b> Muchas empresas filtran los CV por términos de la vacante. Los que faltan son los primeros que conviene agregar, siempre que sean ciertos en tu caso.</p>
+  <p><b>Prioridad.</b> En las ediciones, “alta” es lo que más mejora tu CV y conviene hacer primero.</p></details>`;
+
+const pick = (a, ...ks) => { for (const k of ks) { const kk = Object.keys(a).find(x => x.toLowerCase() === k); if (kk && a[kk] != null && a[kk] !== "") return a[kk]; } };
+const USADAS = new Set(["summary","resumen","strengths","fortalezas","weaknesses","debilidades","missing_keywords","palabras_clave_faltantes","matched_keywords","palabras_clave_presentes","suggestions","sugerencias","breakdown","desglose","section_feedback","edits","recomendaciones_edicion","action_plan","plan_accion"]);
+const lista = v => Array.isArray(v) ? v : (v ? [v] : []);
+const txt = x => typeof x === "string" ? x : (x && typeof x === "object" ? Object.values(x).join(" — ") : String(x ?? ""));
+const ul = (items, cls) => items.length ? `<ul class="list ${cls}">${items.map(x => `<li>${esc(txt(x))}</li>`).join("")}</ul>` : '<p class="muted">Sin elementos.</p>';
+const chips = (items, cls) => items.length ? `<div class="chips">${items.map(x => `<span class="chip ${cls}">${esc(txt(x))}</span>`).join("")}</div>` : '<p class="muted">Ninguna.</p>';
+const sec = (titulo_, ayuda, cuerpo) => `<section class="sec"><h3>${titulo_}</h3>${ayuda ? `<p class="help">${ayuda}</p>` : ""}${cuerpo}</section>`;
+const ETQ_DESG = { skills: "Habilidades", experience: "Experiencia", education: "Formación", keywords: "Palabras clave", languages: "Idiomas", format: "Formato" };
+
+function desglose(v) {
+  let filas = [];
+  if (Array.isArray(v)) filas = v.map(x => ({ n: x.category || x.categoria || x.name || x.nombre, p: x.score ?? x.puntaje ?? x.porcentaje }));
+  else if (v && typeof v === "object") filas = Object.entries(v).map(([k, p]) => ({ n: ETQ_DESG[k.toLowerCase()] || titulo(k), p: p && typeof p === "object" ? (p.score ?? p.puntaje) : p }));
+  filas = filas.filter(f => typeof f.p === "number");
+  return filas.length ? `<div class="bars">${filas.map(f => `<div class="brow"><span>${esc(f.n)}</span><span class="track"><i style="width:${Math.max(0, Math.min(100, f.p))}%"></i></span><b>${Math.round(f.p)}%</b></div>`).join("")}</div>` : "";
+}
+
+const prio = p => /alta|high/i.test(p) ? "alta" : /media|medium/i.test(p) ? "media" : /baja|low/i.test(p) ? "baja" : "";
+function ediciones(items) {
+  const orden = { alta: 0, media: 1, baja: 2, "": 3 };
+  return items.map(x => typeof x === "string" ? { issue: x, pr: "" } : {
+    sec: x.section || x.seccion, pr: prio(String(x.priority || x.prioridad || "")),
+    issue: x.issue || x.problema, rec: x.recommendation || x.recomendacion,
+    antes: x.example_before || x.ejemplo_antes, despues: x.example_after || x.ejemplo_despues })
+    .sort((a, b) => orden[a.pr] - orden[b.pr])
+    .map(e => `<article class="edit"><div class="edit-h"><strong>${esc(e.sec || "General")}</strong>${e.pr ? `<span class="badge ${e.pr}">Prioridad ${e.pr}</span>` : ""}</div>
+      ${e.issue ? `<p><small>Qué ocurre</small>${esc(e.issue)}</p>` : ""}
+      ${e.rec ? `<p><small>Qué hacer</small>${esc(e.rec)}</p>` : ""}
+      ${e.antes || e.despues ? `<div class="ba"><div><small>Antes</small>${esc(e.antes || "—")}</div><div><small>Después</small>${esc(e.despues || "—")}</div></div>` : ""}</article>`).join("");
+}
+
+function informe(a) {
+  const p = pctOf(a);
+  const resumenTxt = pick(a, "summary", "resumen");
+  const fort = lista(pick(a, "strengths", "fortalezas")), deb = lista(pick(a, "weaknesses", "debilidades"));
+  const falt = lista(pick(a, "missing_keywords", "palabras_clave_faltantes")), pres = lista(pick(a, "matched_keywords", "palabras_clave_presentes"));
+  const sug = lista(pick(a, "suggestions", "sugerencias")), eds = lista(pick(a, "section_feedback", "edits", "recomendaciones_edicion"));
+  const plan = lista(pick(a, "action_plan", "plan_accion")), desg = desglose(pick(a, "breakdown", "desglose"));
+  let h = "";
+  if (p !== null) h += `<div class="score"><div class="ring" style="--p:${p};--c:${pctColor(p)}"><span>${p}%</span></div><div><h2 style="margin:0">Compatibilidad con la vacante</h2><span class="muted">${nivel(p).largo}</span></div></div>`;
+  if (resumenTxt) h += `<p>${esc(resumenTxt)}</p>`;
+  if (desg) h += sec("Desglose por área", "Qué tan bien responde tu CV en cada área que evalúa la vacante.", desg);
+  if (pres.length || falt.length) h += sec("Palabras clave", "Términos que los filtros automáticos y los reclutadores buscan en tu CV.",
+    `<p class="sub">Ya aparecen en tu CV</p>${chips(pres, "on")}<p class="sub">Faltan en tu CV</p>${chips(falt, "off")}`);
+  if (fort.length || deb.length) h += `<section class="sec"><div class="two"><div><h3>Fortalezas</h3><p class="help">Lo que tu CV ya demuestra frente a la vacante.</p>${ul(fort, "good")}</div><div><h3>Debilidades</h3><p class="help">Requisitos que tu CV no muestra con claridad.</p>${ul(deb, "fix")}</div></div></section>`;
+  if (eds.length) h += sec("Qué editar en tu CV", "Cambios concretos, sección por sección, ordenados de mayor a menor prioridad.", ediciones(eds));
+  if (sug.length) h += sec(eds.length ? "Otras sugerencias" : "Sugerencias de mejora", eds.length ? "" : "Ideas para fortalecer tu CV frente a esta vacante.", ul(sug, "fix"));
+  if (plan.length) h += sec("Plan de acción", "Qué hacer primero, en orden.", `<ol class="plan">${plan.map(x => `<li>${esc(txt(x))}</li>`).join("")}</ol>`);
+  for (const [k, v] of Object.entries(a)) {
+    if (OCULTAR.test(k) || esFecha(k) || esArchivo(k) || USADAS.has(k.toLowerCase()) || (esPct(k) && typeof v === "number") || v === null || v === "") continue;
+    h += sec(esc(titulo(k)), "", Array.isArray(v) ? ul(v, "") : `<p>${esc(typeof v === "object" ? JSON.stringify(v) : v)}</p>`);
+  }
+  return h;
+}
+
+const EJEMPLO = {
+  archivo: "CV_ejemplo.pdf", fecha: new Date().toISOString(), match_percentage: 68,
+  summary: "Tu perfil cubre bien la parte técnica de la vacante (Excel y SQL), pero el CV no muestra resultados medibles ni menciona Power BI, una herramienta que la oferta pide de forma explícita.",
+  breakdown: { skills: 72, experience: 64, education: 85, keywords: 55 },
+  matched_keywords: ["Excel", "SQL", "Análisis de datos", "Trabajo en equipo"],
+  missing_keywords: ["Power BI", "Indicadores (KPI)", "Visualización de datos", "Automatización de reportes"],
+  strengths: ["Formación afín a la vacante (licenciatura en estadística).", "Dos años de experiencia manejando bases de datos con SQL.", "Experiencia comprobable en trabajo con equipos multidisciplinarios."],
+  weaknesses: ["No aparece ninguna herramienta de visualización de datos.", "Los logros se describen como tareas, sin cifras ni resultados.", "El resumen profesional es genérico y no menciona el puesto buscado."],
+  section_feedback: [
+    { section: "Resumen profesional", priority: "alta", issue: "El texto es genérico y no conecta con el puesto.", recommendation: "Menciona el puesto, tus años de experiencia y las herramientas que la vacante pide.", example_before: "Persona responsable y proactiva en busca de nuevos retos.", example_after: "Analista de datos con 2 años de experiencia en SQL y Excel, enfocada en convertir datos en reportes para la toma de decisiones." },
+    { section: "Experiencia laboral", priority: "alta", issue: "Los puntos describen tareas, no resultados.", recommendation: "Reescribe cada punto con verbo de acción y una cifra o resultado.", example_before: "Encargada de generar reportes mensuales.", example_after: "Automaticé 5 reportes mensuales en Excel y SQL, reduciendo 6 horas de trabajo manual por semana." },
+    { section: "Habilidades", priority: "media", issue: "Falta Power BI, que la vacante menciona dos veces.", recommendation: "Si lo has usado, agrégalo con tu nivel. Si no, anota un curso en curso o un proyecto personal.", example_before: "Excel, SQL, Word.", example_after: "SQL (avanzado), Excel (avanzado), Power BI (en curso)." },
+    { section: "Formato", priority: "baja", issue: "El CV ocupa dos páginas con poco contenido en la segunda.", recommendation: "Ajústalo a una sola página y ordénalo de lo más reciente a lo más antiguo." }
+  ],
+  action_plan: ["Reescribe el resumen profesional con el puesto y tus herramientas clave.", "Convierte los puntos de experiencia en logros con cifras.", "Agrega Power BI y KPI a tus habilidades si aplican a tu caso.", "Ajusta el CV a una sola página y vuelve a analizarlo."]
+};
+
+async function borrar(id, btn, msgEl) {
+  if (!confirm("¿Borrar este análisis? No se puede deshacer.")) return false;
+  busy(btn, true, "Borrando…");
+  try { await api(RUTAS.analyses + "/" + encodeURIComponent(id), { method: "DELETE" }); return true; }
+  catch (err) {
+    note(msgEl, err.status === 404 || err.status === 405 ? "El back-end todavía no tiene la ruta DELETE /analyses/{id}. Pídele a Luis que la agregue." : err.message);
+    busy(btn, false); return false;
+  }
+}
+
+function resultadoView(id, directo) {
+  $app.innerHTML = `<div class="card" id="r"><p class="muted">Cargando resultado…</p></div>`;
+  const draw = a => {
+    $("#r").innerHTML = `<h1>Informe de compatibilidad</h1>${resumen(a)}${COMO}${informe(a)}<div class="row noprint" style="margin-top:2rem"><a class="btn" href="#analizar" style="margin:0">Nuevo análisis</a><a class="btn ghost" href="#historial" style="margin:0">Historial</a><button class="btn ghost" id="print" style="margin:0">Guardar como PDF</button>${a.id != null && RUTAS.puedeBorrar ? '<button class="btn danger" id="del" style="margin:0 0 0 auto">Borrar</button>' : ""}</div><div id="m" hidden></div>`;
+    const pr = $("#print"); if (pr) pr.onclick = () => window.print();
+    const d = $("#del"); if (d) d.onclick = async () => { if (await borrar(a.id, d, $("#m"))) location.hash = "#historial"; };
+  };
+  if (directo) return draw(directo);
+  descubrir().then(() => api(RUTAS.analyses + "/" + encodeURIComponent(id))).then(draw).catch(e => ($("#r").innerHTML = `<div class="msg">${esc(e.message)}</div>`));
+}
+
+function ejemploView() {
+  $app.innerHTML = `<div class="card"><div class="demo">Este es un informe de ejemplo con datos ficticios. Así se verá el tuyo.</div><h1>Informe de compatibilidad</h1>${resumen(EJEMPLO)}${COMO}${informe(EJEMPLO)}
+    <div class="row noprint" style="margin-top:2rem"><a class="btn" href="${getToken() ? "#analizar" : "#registro"}" style="margin:0">${getToken() ? "Hacer mi análisis" : "Crear cuenta gratuita"}</a></div></div>`;
+}
+
+/* ---------- Historial ---------- */
+function historialView() {
+  $app.innerHTML = `<h1>Historial</h1><div class="card"><input type="search" id="q" placeholder="Buscar por vacante, resumen o fecha" aria-label="Buscar en el historial" hidden><div id="m" hidden></div><div id="h"><p class="muted">Cargando…</p></div></div>`;
+  const q = $("#q"), m = $("#m"), h = $("#h");
+  let datos = [];
+  const titulo_ = a => String(a.titulo || a.vacante || a.resumen || a.summary || "Análisis #" + a.id);
+  const fechaDe = a => { const e = Object.entries(a).find(([k]) => esFecha(k)); return e ? e[1] : null; };
+
+  function pintar() {
+    const t = q.value.trim().toLowerCase();
+    const lista = datos.filter(a => !t || (titulo_(a) + " " + (a.resumen || "") + " " + (fechaDe(a) ? fechaTxt(fechaDe(a)) : "")).toLowerCase().includes(t));
+    if (!lista.length) { h.innerHTML = `<p class="muted" style="margin:1rem 0 0">${datos.length ? "Ningún análisis coincide con tu búsqueda." : 'Todavía no tienes análisis. <a href="#analizar">Haz el primero</a>.'}</p>`; return; }
+    h.innerHTML = `<p class="muted" style="margin:.75rem 0 0;font-size:.9rem">${lista.length} ${lista.length === 1 ? "análisis" : "análisis"}</p><ul class="hist">${lista.map(a => {
+      const p = pctOf(a), f = fechaDe(a);
+      return `<li><a class="item" href="#resultado/${esc(a.id)}"><span class="t">${esc(titulo_(a).slice(0, 90))}</span><span class="muted" style="font-size:.88rem">${f ? esc(fechaTxt(f)) : ""}</span></a>
+        ${p !== null ? `<span class="bar"><i style="width:${p}%;background:${pctColor(p)}"></i></span><span class="pct" style="color:${pctColor(p)}">${p}%</span>` : ""}
+        ${RUTAS.puedeBorrar ? `<button class="btn danger sm" data-del="${esc(a.id)}" aria-label="Borrar análisis">Borrar</button>` : ""}</li>`;
+    }).join("")}</ul>`;
+  }
+  q.oninput = pintar;
+  h.onclick = async e => {
+    const b = e.target.closest("[data-del]"); if (!b) return;
+    if (await borrar(b.dataset.del, b, m)) { datos = datos.filter(a => String(a.id) !== b.dataset.del); note(m, "Análisis borrado.", "ok"); pintar(); }
+  };
+  descubrir().then(() => api(RUTAS.analyses)).then(r => {
+    datos = (Array.isArray(r) ? r : (r && (r.items || r.analyses || r.data)) || []).slice().sort((x, y) => { const a = fechaDe(x), b = fechaDe(y); return a && b ? new Date(b) - new Date(a) : (y.id ?? 0) - (x.id ?? 0); });
+    q.hidden = !datos.length; pintar();
+  }).catch(e => (h.innerHTML = `<div class="msg">${esc(e.message)}</div>`));
+}
+
+/* ---------- Router ---------- */
+function router() {
+  const logueado = !!getToken();
+  const [ruta, id] = (location.hash.slice(1) || (logueado ? "analizar" : "inicio")).split("/");
+  const privada = ["analizar", "historial", "resultado"].includes(ruta);
+  const libre = ruta === "ejemplo";
+  if (privada && !logueado) { location.hash = "#login"; return; }
+  if (!privada && !libre && logueado) { location.hash = "#analizar"; return; }
+  const vistas = { inicio: inicioView, login: () => authView("login"), registro: () => authView("registro"), analizar: analizarView, historial: historialView, ejemplo: ejemploView, resultado: () => resultadoView(id) };
+  if (!vistas[ruta]) { location.hash = logueado ? "#analizar" : "#inicio"; return; }
+  $app.className = ruta === "inicio" ? "wide" : ""; renderNav(ruta); window.scrollTo(0, 0); vistas[ruta]();
+}
+addEventListener("hashchange", router);
+descubrir();
+router();
+</script>
+</body>
+</html>
