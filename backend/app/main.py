@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -20,10 +21,18 @@ app = FastAPI(title="Analizador de CVs API", lifespan=lifespan)
 app.include_router(analisis_router)
 app.include_router(router_cvs)
 
-# Permite que el front-end se conecte desde otro puerto
+# Solo los front-end permitidos pueden llamar a la API.
+# Se pueden agregar más en Render con CORS_ORIGINS (separados por coma).
+origenes = [
+    o.strip()
+    for o in os.getenv("CORS_ORIGINS", "https://cvision-x530.onrender.com").split(",")
+    if o.strip()
+]
+origenes += ["http://localhost:5500", "http://127.0.0.1:5500"]  # pruebas locales
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # luego lo cambiamos por la URL real del front-end
+    allow_origins=origenes,
     allow_methods=["*"],
     allow_headers=["*"],
 )
