@@ -1,6 +1,7 @@
 import json
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from sqlmodel import Session, select
 
 from .auth import usuario_actual
@@ -31,16 +32,18 @@ async def crear_analisis(
     if not (cv.filename or "").lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="El CV debe ser un PDF")
     contenido = await cv.read()
-    resultado = analizar(contenido, vacante)
+    try:
+        resultado = await run_in_threadpool(analizar, vacante, contenido)
+    except ValueError as e:  # PDF ilegible o sin texto
+        raise HTTPException(status_code=422, detail=str(e))
+    except RuntimeError as e:  # falla del servicio de IA
+        raise HTTPException(status_code=502, detail=str(e))
     resultado["archivo"] = cv.filename
 
-    porcentaje = int(
-        resultado.get("match_percentage", resultado.get("compatibility_score", 0))
-    )
     registro = Analisis(
         usuario_id=usuario.id,
         vacante=vacante,
-        compatibility_score=porcentaje,
+        compatibility_score=int(resultado["match_percentage"]),
         resultado_json=json.dumps(resultado, ensure_ascii=False),
     )
     session.add(registro)
