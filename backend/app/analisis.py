@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 from .auth import usuario_actual
 from .database import get_session
 from .ia import analizar
-from .models import Analisis, Usuario
+from .models import CV, Analisis, Usuario
 
 router = APIRouter(prefix="/analyses", tags=["analyses"])
 router_cvs = APIRouter(prefix="/cvs", tags=["cvs"])
@@ -16,6 +16,8 @@ def armar(a: Analisis) -> dict:
     datos = json.loads(a.resultado_json)
     datos["id"] = a.id
     datos["created_at"] = a.created_at.isoformat()
+    datos.setdefault("match_percentage", a.compatibility_score)
+    datos.setdefault("compatibility_score", a.compatibility_score)
     return datos
 
 
@@ -30,10 +32,15 @@ async def crear_analisis(
         raise HTTPException(status_code=400, detail="El CV debe ser un PDF")
     contenido = await cv.read()
     resultado = analizar(contenido, vacante)
+    resultado["archivo"] = cv.filename
+
+    porcentaje = int(
+        resultado.get("match_percentage", resultado.get("compatibility_score", 0))
+    )
     registro = Analisis(
         usuario_id=usuario.id,
         vacante=vacante,
-        compatibility_score=int(resultado["compatibility_score"]),
+        compatibility_score=porcentaje,
         resultado_json=json.dumps(resultado, ensure_ascii=False),
     )
     session.add(registro)
@@ -65,6 +72,24 @@ def detalle_analisis(
     if not fila or fila.usuario_id != usuario.id:
         raise HTTPException(status_code=404, detail="Analisis no encontrado")
     return armar(fila)
+
+
+@router.delete("/{analisis_id}", status_code=204)
+def borrar_analisis(
+    analisis_id: int,
+    usuario: Usuario = Depends(usuario_actual),
+    session: Session = Depends(get_session),
+):
+    fila = session.get(Analisis, analisis_id)
+    if not fila or fila.usuario_id != usuario.id:
+        raise HTTPException(status_code=404, detail="Analisis no encontrado")
+    for cv_fila in session.exec(select(CV).where(CV.analisis_id == analisis_id)).all():
+        cv_fila.analisis_id = None
+        session.add(cv_fila)
+    session.delete(fila)
+    session.commit()
+
+
 @router_cvs.get("")
 def listar_cvs():
     return []
